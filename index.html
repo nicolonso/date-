@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Raspadinha for Mahé</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one lottery ticket (raspadinha) on a dark table; two foil windows, then the answer stub. Single look by choice. */
+:root{
+  --table:#1d2147;
+  --ticket:#ffd23f;
+  --ink:#15173d;
+  --cobalt:#2e48f0;
+  --rose:#ff4f87;
+  --paper:#fffaf0;
+  --ink-soft:rgba(21,23,61,.68);
+  --display:'Bungee','Arial Black',Impact,sans-serif;
+  --body:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--table);
+  background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1.5px);
+  background-size:18px 18px;
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:16px;
+  line-height:1.5;
+}
+.wrap{
+  padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;justify-content:center;
+}
+.ticket{
+  position:relative;width:100%;max-width:660px;
+  background:var(--ticket);
+  border-radius:8px;
+  padding:26px clamp(16px,4vw,30px) 22px;
+  box-shadow:0 18px 40px rgba(0,0,0,.35);
+  display:flex;flex-direction:column;gap:22px;
+}
+/* perforation notches */
+.ticket::before,.ticket::after{
+  content:"";position:absolute;top:154px;width:26px;height:26px;border-radius:50%;
+  background:var(--table);
+}
+.ticket::before{left:-13px}
+.ticket::after{right:-13px}
+
+.meta{
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+h1{
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(30px,8vw,52px);line-height:1;
+  margin:0;text-wrap:balance;
+  color:var(--ink);
+}
+h1 .hl{color:var(--cobalt)}
+.lede{margin:10px 0 0;max-width:46ch;font-size:17px}
+.tear{border:0;border-top:2px dashed var(--ink);opacity:.35;margin:0}
+
+.prizes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:560px){.prizes{grid-template-columns:1fr}}
+
+.prize{display:flex;flex-direction:column;gap:10px;min-width:0}
+.window{
+  position:relative;aspect-ratio:5/4;max-width:100%;
+  border:3px solid var(--ink);border-radius:10px;overflow:hidden;
+  background:var(--paper);
+}
+.under{
+  position:absolute;inset:0;padding:14px 16px;
+  display:flex;flex-direction:column;justify-content:center;gap:4px;
+}
+.under .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.under .big{font-family:var(--display);font-size:clamp(26px,7vw,34px);line-height:1;color:var(--cobalt)}
+.prize[data-key="sushi"] .under .big{color:var(--rose)}
+.under .what{font-weight:600;font-size:16px;line-height:1.3}
+.under .where{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.under .rule{font-size:14px;margin-top:4px}
+
+.window canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;transition:opacity .5s ease}
+.window canvas.gone{opacity:0;pointer-events:none}
+
+.stamp{
+  position:absolute;right:10px;top:10px;
+  font-family:var(--display);font-size:15px;letter-spacing:.04em;
+  color:var(--rose);border:3px solid var(--rose);border-radius:6px;padding:2px 8px;
+  transform:rotate(8deg) scale(.6);opacity:0;transition:transform .25s cubic-bezier(.3,1.6,.6,1),opacity .2s;
+  background:var(--paper);
+}
+.prize.chosen .stamp{opacity:1;transform:rotate(8deg) scale(1)}
+.prize.chosen .window{border-color:var(--rose);box-shadow:0 0 0 3px var(--rose)}
+.bonus .window{aspect-ratio:2/1;border-color:var(--cobalt)}
+@media (max-width:560px){.bonus .window{aspect-ratio:4/3}}
+
+.prize-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:42px;flex-wrap:wrap}
+.hint{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.linkish{
+  background:none;border:0;padding:4px 0;font:inherit;font-family:var(--mono);font-size:12px;
+  color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;
+}
+.btn{
+  font-family:var(--display);font-size:14px;letter-spacing:.03em;
+  background:var(--ink);color:var(--ticket);
+  border:0;border-radius:999px;padding:10px 16px;cursor:pointer;
+  transition:transform .12s ease;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(1px)}
+.btn.alt{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px}
+
+.step{display:flex;flex-direction:column;gap:10px}
+.step h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0}
+.step p{margin:0;font-size:15px;color:var(--ink-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-unused{
+  font-family:var(--body);font-weight:600;font-size:15px;
+  background:transparent;color:var(--ink);
+  border:2px solid var(--ink);border-radius:999px;padding:7px 16px;cursor:pointer;
+}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--ticket)}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+
+.stub{
+  background:var(--paper);border:3px solid var(--ink);border-radius:10px;
+  padding:14px;display:flex;flex-direction:column;gap:12px;
+}
+.stub textarea{
+  width:100%;min-height:88px;resize:vertical;
+  font:inherit;font-size:16px;color:var(--ink);background:transparent;border:0;padding:0;
+}
+.stub .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.stub .note{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+a.btn{text-decoration:none;display:inline-block}
+
+.fine{font-size:13px;color:var(--ink-soft)}
+.fine h3{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 6px;color:var(--ink)}
+.fine ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:3px}
+
+.barcode{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.bars{
+  height:38px;flex:1 1 180px;max-width:260px;
+  background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 9px,var(--ink) 9px 12px,transparent 12px 14px);
+}
+.serial{font-family:var(--mono);font-size:12px;letter-spacing:.14em;font-variant-numeric:tabular-nums}
+
+@media (prefers-reduced-motion:reduce){
+  .window canvas,.stamp,.btn{transition:none}
+}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <main class="ticket">
+    <header>
+      <div class="meta"><span>Raspadinha · Série Mahé</span><span>Nº 002 · Monday · 20:00</span></div>
+      <h1 style="margin-top:14px">Second date. <span class="hl">Scratch to win.</span></h1>
+      <p class="lede">Monday at 20:00, in Almada. Two prizes are hidden under the foil. Scratch both with your finger, then keep the one you want. Choose right and a bonus prize unlocks.</p>
+    </header>
+
+    <hr class="tear">
+
+    <section class="prizes" aria-label="Prizes">
+      <article class="prize" data-key="bowl">
+        <div class="window">
+          <div class="under">
+            <span class="tag">Prize A</span>
+            <span class="big">Strike!</span>
+            <span class="what">Pizza and bowling at Don's Pizza Burger</span>
+            <span class="where">R. da Liberdade 74 I · Cova da Piedade</span>
+            <span class="rule">The bowling lanes are right inside.</span>
+          </div>
+          <canvas aria-hidden="true"></canvas>
+          <div class="stamp" aria-hidden="true">Chosen</div>
+        </div>
+        <div class="prize-foot">
+          <button class="linkish reveal-btn" type="button" id="reveal-bowl">Reveal without scratching</button>
+          <button class="btn pick" type="button" id="pick-bowl" hidden>Keep this prize</button>
+        </div>
+      </article>
+
+      <article class="prize" data-key="sushi">
+        <div class="window">
+          <div class="under">
+            <span class="tag">Prize B</span>
+            <span class="big">Sushi train</span>
+            <span class="what">Sushi that arrives on a little train at Moda Sushi</span>
+            <span class="where">Estr. do Brejo 20 · Almada</span>
+            <span class="rule">Whoever drops a piece tells an embarrassing story.</span>
+          </div>
+          <canvas aria-hidden="true"></canvas>
+          <div class="stamp" aria-hidden="true">Chosen</div>
+        </div>
+        <div class="prize-foot">
+          <button class="linkish reveal-btn" type="button" id="reveal-sushi">Reveal without scratching</button>
+          <button class="btn pick" type="button" id="pick-sushi" hidden>Keep this prize</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="step" aria-labelledby="bonus-h">
+      <h2 id="bonus-h">Bonus prize</h2>
+      <p id="bonus-p">Locked. Keep a prize first.</p>
+      <article class="prize bonus" data-key="bonus" id="bonus" hidden>
+        <div class="window">
+          <div class="under">
+            <span class="tag">You chose right</span>
+            <span class="big">Date nº 3</span>
+            <span class="what">Your rules: you choose the place, the plan and everything in it. I just show up.</span>
+            <span class="where" id="bonus-where">Valid for one date · no expiry date</span>
+          </div>
+          <canvas aria-hidden="true"></canvas>
+        </div>
+        <div class="prize-foot">
+          <button class="linkish reveal-btn" type="button" id="reveal-bonus">Reveal without scratching</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="step" aria-labelledby="ans-h">
+      <h2 id="ans-h">Claim your prize</h2>
+      <div class="stub">
+        <textarea id="answer" readonly aria-label="Your answer">Scratch the foil and keep a prize. Your answer appears here.</textarea>
+        <div class="actions">
+          <button class="btn" type="button" id="copy" disabled>Copy my answer</button>
+          <a class="btn alt" id="wa" href="https://wa.me/" target="_blank" rel="noopener" hidden>Send on WhatsApp</a>
+          <span class="note" id="copy-note" role="status"></span>
+        </div>
+      </div>
+    </section>
+
+    <hr class="tear">
+
+    <section class="fine">
+      <h3>Terms and conditions</h3>
+      <ol>
+        <li>Valid for one (1) second date. Not exchangeable for cash.</li>
+        <li>Valid Monday from 20:00. After dinner: Lisbon by night from the Jardim do Castelo viewpoint, open until 23:00.</li>
+        <li>Saying "I'm bad at bowling" and then winning counts as fraud.</li>
+        <li>The bonus prize cannot be refused or transferred to another person.</li>
+      </ol>
+    </section>
+
+    <div class="barcode" aria-hidden="true">
+      <div class="bars"></div>
+      <span class="serial">0002 · 2026 · 1101 · 42</span>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var NAMES = {
+    bowl: "pizza and bowling at Don's Pizza Burger",
+    sushi: "the sushi train at Moda Sushi"
+  };
+  var state = { choice:null, bonus:false };
+
+  var answer = document.getElementById('answer');
+  var copyBtn = document.getElementById('copy');
+  var wa = document.getElementById('wa');
+  var note = document.getElementById('copy-note');
+  var bonusEl = document.getElementById('bonus');
+  var bonusP = document.getElementById('bonus-p');
+  var bonusWhere = document.getElementById('bonus-where');
+  var prizes = Array.prototype.slice.call(document.querySelectorAll('.prize'));
+
+  function message(){
+    if(!state.choice) return "Scratch the foil and keep a prize. Your answer appears here.";
+    var m = "I scratched my raspadinha and I'm keeping the prize: " + NAMES[state.choice] + ", Monday at 20:00.";
+    m += state.bonus ? " Bonus unlocked: a third date where I choose everything. See you there!" : " See you there!";
+    return m;
+  }
+  function render(){
+    var m = message();
+    answer.value = m;
+    copyBtn.disabled = !state.choice;
+    wa.hidden = !state.choice;
+    wa.href = "https://wa.me/?text=" + encodeURIComponent(m);
+    prizes.forEach(function(p){ p.classList.toggle('chosen', p.dataset.key === state.choice); });
+    if(state.choice){
+      var wasHidden = bonusEl.hidden;
+      bonusEl.hidden = false;
+      bonusP.textContent = state.bonus ? "Unlocked." : "You chose right. Scratch your bonus.";
+      if(wasHidden && bonusEl._paint) bonusEl._paint();
+    }
+  }
+
+  copyBtn.addEventListener('click', function(){
+    var text = answer.value;
+    function fallback(){
+      answer.focus(); answer.select();
+      note.textContent = "Selected. Copy it from your keyboard menu.";
+    }
+    try{
+      navigator.clipboard.writeText(text).then(function(){ note.textContent = "Copied. Paste it to Nicolas."; }, fallback);
+    }catch(e){ fallback(); }
+  });
+
+  var LABELS = { bowl:'PRÉMIO A', sushi:'PRÉMIO B', bonus:'BÓNUS' };
+
+  function setupPrize(prize){
+    var win = prize.querySelector('.window');
+    var canvas = win.querySelector('canvas');
+    var ctx = canvas.getContext('2d');
+    var pick = prize.querySelector('.pick');
+    var revealBtn = prize.querySelector('.reveal-btn');
+    var revealed = false, drawing = false, last = null, moves = 0, lastW = 0;
+
+    function paint(){
+      if(revealed) return;
+      var r = win.getBoundingClientRect();
+      if(!r.width) return;
+      lastW = r.width; last = null;
+      var dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(r.width*dpr);
+      canvas.height = Math.round(r.height*dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.globalCompositeOperation = 'source-over';
+      var w = r.width, h = r.height;
+      var g = ctx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0,'#b9bdcb'); g.addColorStop(.35,'#eef0f5');
+      g.addColorStop(.5,'#a9adbc'); g.addColorStop(.7,'#e4e6ee'); g.addColorStop(1,'#c3c6d2');
+      ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+      ctx.save();
+      ctx.translate(w/2,h/2); ctx.rotate(-0.22);
+      ctx.fillStyle = 'rgba(21,23,61,.13)';
+      ctx.font = '12px Bungee, "Arial Black", sans-serif';
+      ctx.textAlign = 'center';
+      var row = 0;
+      for(var y=-h; y<h; y+=26){
+        for(var x=-w; x<w; x+=110){ ctx.fillText('RASPE AQUI', x + (row%2 ? 55 : 0), y); }
+        row++;
+      }
+      ctx.restore();
+      ctx.fillStyle = '#15173d';
+      ctx.textAlign = 'center';
+      ctx.font = '22px Bungee, "Arial Black", sans-serif';
+      ctx.fillText(LABELS[prize.dataset.key], w/2, h/2 - 2);
+      ctx.font = '600 12px "IBM Plex Mono", monospace';
+      ctx.fillText('scratch with your finger', w/2, h/2 + 22);
+    }
+    prize._paint = paint;
+
+    function pos(e){
+      var r = canvas.getBoundingClientRect();
+      return { x:e.clientX - r.left, y:e.clientY - r.top };
+    }
+    function scratch(a,b){
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = 38; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    }
+    function check(){
+      if(revealed || !canvas.width) return;
+      var d = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+      var clear = 0, total = 0;
+      for(var i=3; i<d.length; i+=4*37){ total++; if(d[i] < 20) clear++; }
+      if(total && clear/total > 0.5) reveal();
+    }
+    function reveal(){
+      if(revealed) return;
+      revealed = true;
+      canvas.classList.add('gone');
+      revealBtn.hidden = true;
+      if(pick) pick.hidden = false;
+      if(prize.dataset.key === 'bonus'){ state.bonus = true; render(); }
+    }
+
+    canvas.addEventListener('pointerdown', function(e){
+      if(revealed) return;
+      drawing = true;
+      try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+      last = pos(e); scratch(last,last);
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', function(e){
+      if(!drawing) return;
+      var p = pos(e); scratch(last,p); last = p;
+      if(++moves % 15 === 0) check();
+    });
+    function end(){ if(drawing){ drawing = false; check(); } }
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+
+    revealBtn.addEventListener('click', reveal);
+    if(pick) pick.addEventListener('click', function(){ state.choice = prize.dataset.key; render(); });
+
+    paint();
+    if(document.fonts && document.fonts.ready){ document.fonts.ready.then(function(){ if(!last && !moves) paint(); }); }
+    window.addEventListener('resize', function(){
+      var r = win.getBoundingClientRect();
+      if(r.width && Math.abs(r.width - lastW) > 2) paint();
+    });
+  }
+
+  prizes.forEach(setupPrize);
+  render();
+})();
+</script>
+
+</body>
+</html>
